@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "repo-validation-system"
+version = "1.0.0"
+description = "Multi-agent system for automated repository validation and skill A/B benchmarking"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Julio Pessan", email = "juliopessan@gmail.com" }
+]
+keywords = ["ai", "agents", "validation", "benchmarking", "repository", "claude"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "jsonschema>=4.21.0",
+    "rich>=13.7.0",
+    "click>=8.1.0",
+    "pydantic>=2.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.3.0",
+    "black>=24.0.0",
+    "mypy>=1.8.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[project.scripts]
+validate-repo = "scripts.validate:main"
+compare-repos = "scripts.compare:main"
+
+[project.urls]
+Repository = "https://github.com/juliopessan/repo-validation-system"
+Issues = "https://github.com/juliopessan/repo-validation-system/issues"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests (need network)",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["scripts", "src"]
+omit = ["tests/*", "scripts/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true

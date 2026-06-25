@@ -1,0 +1,281 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/juliopessan/repo-validation-system/specs/metrics-schema.json",
+  "title": "Repo Validation System — Metrics Schema",
+  "description": "JSON Schema for all evaluation entries persisted by the repo-validation-system",
+  "oneOf": [
+    { "$ref": "#/definitions/RepoValidatorEntry" },
+    { "$ref": "#/definitions/ABBenchmarkEntry" }
+  ],
+  "definitions": {
+    "Verdict": {
+      "type": "string",
+      "enum": ["RECOMMENDED", "CONDITIONAL", "NOT RECOMMENDED", "UNABLE TO VALIDATE"]
+    },
+    "BenchmarkMode": {
+      "type": "string",
+      "enum": ["benchmark", "pilot"]
+    },
+    "MetricType": {
+      "type": "string",
+      "enum": ["LOC", "words", "tokens"]
+    },
+    "RepoMetrics": {
+      "type": "object",
+      "required": ["build_success", "code_files"],
+      "properties": {
+        "tests_pass": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of tests that passed"
+        },
+        "tests_total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of tests found"
+        },
+        "tests_pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Pass rate as a percentage (0-100)"
+        },
+        "coverage": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Code coverage percentage (0-100), null if not measured"
+        },
+        "build_success": {
+          "type": "boolean",
+          "description": "Whether the build completed successfully"
+        },
+        "lint_errors": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of lint errors found"
+        },
+        "lint_warnings": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of lint warnings found"
+        },
+        "vulns": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of known vulnerabilities in dependencies"
+        },
+        "vulns_critical": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of critical severity vulnerabilities"
+        },
+        "vulns_high": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of high severity vulnerabilities"
+        },
+        "test_time_seconds": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Wall clock time for test suite execution"
+        },
+        "build_time_seconds": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Wall clock time for build"
+        },
+        "repo_size_mb": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Repository size in megabytes"
+        },
+        "code_files": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of source code files"
+        },
+        "loc_approx": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Approximate lines of code (non-empty lines)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RepoValidatorEntry": {
+      "type": "object",
+      "required": ["_type", "repo", "date", "verdict", "metrics"],
+      "properties": {
+        "_type": {
+          "const": "repo-validator",
+          "description": "Entry type discriminator"
+        },
+        "repo": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$",
+          "description": "Repository identifier in owner/repo format"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 timestamp of validation run"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$",
+          "description": "Git commit hash (short or full)"
+        },
+        "verdict": {
+          "$ref": "#/definitions/Verdict"
+        },
+        "stack": {
+          "type": "object",
+          "properties": {
+            "language": { "type": "string" },
+            "package_manager": { "type": "string" },
+            "test_framework": { "type": "string" },
+            "web_framework": { "type": ["string", "null"] },
+            "has_docker": { "type": "boolean" },
+            "has_ci": { "type": "boolean" }
+          }
+        },
+        "metrics": {
+          "$ref": "#/definitions/RepoMetrics"
+        },
+        "strengths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Positive findings from validation"
+        },
+        "weaknesses": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Issues and concerns found during validation"
+        },
+        "report_path": {
+          "type": "string",
+          "description": "Path to the full REPORT.md file"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskResult": {
+      "type": "object",
+      "required": ["task", "arm"],
+      "properties": {
+        "task": {
+          "type": "string",
+          "description": "Task identifier or short description"
+        },
+        "arm": {
+          "type": "string",
+          "enum": ["baseline", "treatment", "terse"],
+          "description": "Experiment arm"
+        },
+        "run": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Run index within the arm (1-indexed)"
+        },
+        "loc": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lines of code (non-empty) in generated output"
+        },
+        "files": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of files generated"
+        },
+        "deps_added": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of new dependencies introduced"
+        },
+        "words": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Word count (for prose-type benchmarks)"
+        },
+        "security_checklist": {
+          "type": "object",
+          "properties": {
+            "input_validation": { "type": "boolean" },
+            "error_handling": { "type": "boolean" },
+            "accessibility": { "type": ["boolean", "null"] },
+            "has_test": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "ABBenchmarkEntry": {
+      "type": "object",
+      "required": ["_type", "ruleset", "date", "model", "mode", "n", "tasks", "metric"],
+      "properties": {
+        "_type": {
+          "const": "skill-ab-benchmark",
+          "description": "Entry type discriminator"
+        },
+        "ruleset": {
+          "type": "string",
+          "description": "Name or path of the skill/ruleset being benchmarked"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "model": {
+          "type": "string",
+          "description": "Claude model used (always claude-sonnet-*)"
+        },
+        "mode": {
+          "$ref": "#/definitions/BenchmarkMode"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of runs per arm per task"
+        },
+        "tasks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Task descriptions used in benchmark"
+        },
+        "metric": {
+          "$ref": "#/definitions/MetricType"
+        },
+        "results": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/TaskResult" }
+        },
+        "mean_delta_vs_control": {
+          "type": ["number", "null"],
+          "description": "Mean percentage reduction vs terse/control arm (honest delta)"
+        },
+        "mean_delta_vs_baseline": {
+          "type": ["number", "null"],
+          "description": "Mean percentage reduction vs baseline (unconstrained) arm"
+        },
+        "safety_degraded": {
+          "type": "boolean",
+          "description": "True if any treatment arm degraded a security checklist item"
+        },
+        "safety_notes": {
+          "type": "string",
+          "description": "Free-text notes on safety findings"
+        },
+        "publishable": {
+          "type": "boolean",
+          "description": "True if task count >= 3 (publication gate)"
+        },
+        "report_path": {
+          "type": "string",
+          "description": "Path to the generated HTML report"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

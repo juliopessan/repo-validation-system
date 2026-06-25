@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<!--
+  TEMPLATE PADRAO DE RELATORIO — skill-ab-benchmark
+  Preencha os campos {{...}} e os blocos marcados com <!-- FILL -->.
+  Estrutura fixa (NAO reordenar): Cenario -> KPIs -> Tabela -> Ganha/Nao-ganha
+  -> Exatidao/Seguranca -> Veredito. Funciona pra metrica de LOC (codigo) OU
+  de tokens/palavras (prosa) — troque o label da coluna e dos KPIs conforme o caso.
+  Salve o resultado preenchido em {ROOT}/report.html.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benchmark A/B — {{RULESET}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0A0A; --panel:#121212; --line:#222; --txt:#EDEDED;
+    --muted:#8A8A8A; --accent:#FF6B00; --green:#3FB950; --red:#F85149;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"Inter",-apple-system,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:var(--sans);
+    line-height:1.6;padding:48px 20px;max-width:920px;margin:0 auto}
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--accent);
+    border:1px solid var(--accent);border-radius:4px;padding:4px 10px;margin-bottom:18px}
+  h1{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+  h1 span{color:var(--accent)}
+  .sub{color:var(--muted);font-family:var(--mono);font-size:13px;margin-top:8px}
+  h2{font-size:18px;font-weight:700;margin:42px 0 14px;
+    border-left:3px solid var(--accent);padding-left:12px}
+  p{color:#CFCFCF;margin:12px 0}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:20px;text-align:center}
+  .kpi .n{font-size:40px;font-weight:800;font-family:var(--mono);color:var(--accent)}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.08em}
+  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{padding:12px 14px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left;font-family:var(--mono)}
+  thead th{background:#1A1A1A;color:var(--muted);font-size:12px;
+    text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  tbody tr:last-child td{border-bottom:none}
+  .good{color:var(--green);font-weight:700}
+  .bad{color:var(--red);font-weight:700}
+  .mono{font-family:var(--mono)}
+  .callout{background:#1A130A;border:1px solid #4d3310;border-left:3px solid var(--accent);
+    border-radius:8px;padding:18px 20px;margin:22px 0}
+  .callout strong{color:var(--accent)}
+  ul{margin:12px 0 12px 22px}li{margin:7px 0;color:#CFCFCF}
+  .check li{list-style:none;position:relative;padding-left:26px}
+  .check li:before{content:"\2713";position:absolute;left:0;color:var(--green);font-weight:800}
+  .warn li:before{content:"\26A0";color:var(--red)}
+  .foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);
+    color:var(--muted);font-size:12px;font-family:var(--mono)}
+  .pill{display:inline-block;background:#1A1A1A;border:1px solid var(--line);
+    border-radius:20px;padding:3px 12px;font-size:12px;font-family:var(--mono);color:var(--muted);margin-right:6px}
+  .arms{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}
+  .arm{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .arm-hi{border-color:var(--accent);background:#1A130A}
+  .arm-t{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+  .arm .mono{font-size:15px;color:var(--accent);font-weight:700}
+  .arm p{font-size:13px;margin:8px 0 0;color:#BdBdBd}
+  .qs{margin:12px 0 12px 22px}
+  .qs li{margin:10px 0;color:#CFCFCF}
+  .qs .mono{color:var(--accent);margin-right:6px}
+  .note{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+  <span class="tag">skill · ab-benchmark</span>
+  <h1>Ruleset <span>{{RULESET}}</span> — {{ONE_LINE_WHAT_IT_DOES}}</h1>
+  <div class="sub">{{REPO}} · modelo {{MODEL}} · modo {{MODE}} · n={{N}} · {{DATE}}</div>
+
+  <p>{{INTRO: o que o ruleset promete e qual a metrica medida (LOC de codigo OU tokens de prosa). 1-2 frases.}}</p>
+
+  <!-- ===================== CENARIO EXATO (sempre presente) ===================== -->
+  <h2>Cenário exato do teste</h2>
+  <p>As <strong>{{NUM_TASKS}} mesmas tarefas</strong> foram disparadas em
+  <strong>{{NUM_ARMS}} versões</strong> do agente (mesmo modelo, mesmo prompt,
+  só muda a regra injetada no system prompt):</p>
+  <!-- NOMES SIMPLES (sem jargao): "Agente solto" / "So 'seja breve'" / "Com a skill".
+       NUNCA use os termos tecnicos baseline/terse/treatment na UI — o leitor leigo nao entende. -->
+  <div class="arms">
+    <div class="arm"><div class="arm-t">Coluna 1</div><span class="mono">Agente solto</span><p>nenhuma regra no sistema. A resposta natural do agente.</p></div>
+    <!-- coluna de controle opcional — remova se nao usou. Pra prosa, o controle e "so pedir pra ser breve". -->
+    <div class="arm"><div class="arm-t">Coluna 2</div><span class="mono">{{CONTROL_NAME}}</span><p>{{CONTROL_DESC}}</p></div>
+    <div class="arm arm-hi"><div class="arm-t">Coluna 3</div><span class="mono">Com a skill</span><p>a skill {{RULESET}} inteira no sistema. É o que estamos testando.</p></div>
+  </div>
+  <p style="margin-top:18px">As tarefas (idênticas em todos os braços):</p>
+  <ol class="qs">
+    <!-- FILL: uma <li> por tarefa -->
+    <li><span class="mono">{{TASK_ID}}</span> — "{{TASK_SPEC}}" <span class="note">{{NOTA_OPCIONAL}}</span></li>
+  </ol>
+  <p class="note">Setup: modelo <span class="mono">{{MODEL}}</span> · n={{N}} ({{N}} run por braço) ·
+  {{TOTAL_RUNS}} runs no total · métrica = {{METRIC_DESC}}.
+  {{POR_QUE_BRACO_CONTROLE — explique que o controle existe pra nao inflar o numero, se aplicavel.}}</p>
+
+  <!-- ===================== KPIs ===================== -->
+  <div class="grid">
+    <div class="kpi"><div class="n">{{KPI1_N}}</div><div class="l">{{KPI1_LABEL}}</div></div>
+    <div class="kpi"><div class="n">{{KPI2_N}}</div><div class="l">{{KPI2_LABEL}}</div></div>
+    <div class="kpi"><div class="n">{{KPI3_N}}</div><div class="l">{{KPI3_LABEL}}</div></div>
+  </div>
+
+  <!-- ===================== TABELA ===================== -->
+  <h2>Resultados por tarefa ({{METRIC_UNIT}})</h2>
+  <table>
+    <thead><tr><th>Tarefa</th><th>Agente solto</th><th>{{CONTROL_NAME}}</th><th>Com a skill</th><th>Ganho da skill</th><th>vs agente solto</th></tr></thead>
+    <tbody>
+      <!-- FILL: uma <tr> por tarefa. Use class="good" p/ corte, class="bad" p/ piora -->
+      <tr><td>{{TASK_ID}}</td><td>{{BASE}}</td><td>{{CTRL}}</td><td>{{TREAT}}</td><td class="good">{{D_CTRL}}</td><td class="good">{{D_BASE}}</td></tr>
+      <tr><td><strong>média</strong></td><td>—</td><td>—</td><td>—</td><td class="good"><strong>{{MEAN_VS_CTRL}}</strong></td><td class="good"><strong>{{MEAN_VS_BASE}}</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>Achado central (sem hype):</strong> {{ACHADO: numero honesto vs a claim do ruleset, com ressalvas de metodologia.}}
+  </div>
+
+  <!-- ===================== ONDE GANHA / NAO GANHA ===================== -->
+  <h2>Onde ganha / onde não ganha</h2>
+  <ul>
+    <li><strong>{{CONTEXTO_GANHA}}</strong> — {{POR_QUE}}.</li>
+    <li><strong>{{CONTEXTO_NAO_GANHA}}</strong> — {{POR_QUE}}.</li>
+  </ul>
+
+  <!-- ===================== EXATIDAO / SEGURANCA ===================== -->
+  <h2>{{TITULO: "Exatidão técnica" p/ prosa, "Segurança preservada" p/ codigo}}</h2>
+  <ul class="check">
+    <!-- use class="warn" no <ul> se houver corte de seguranca/exatidao a destacar -->
+    <li><strong>{{TASK_ID}}</strong> — {{verificacao: manteve validacao/erro/a11y/teste OU manteve substancia tecnica}}.</li>
+  </ul>
+  <p>{{RESUMO da exatidao/seguranca — o achado mais importante se algo foi cortado.}}</p>
+
+  <!-- ===================== VEREDITO ===================== -->
+  <h2>Veredito</h2>
+  <p>{{VEREDITO: o efeito e real? bate com a claim? cortou seguranca? pra quem vale? proximo passo (n=4 / modo ultra / tiktoken).}}</p>
+
+  <div class="foot">
+    <span class="pill">{{NUM_TASKS}} tarefas</span><span class="pill">{{NUM_ARMS}} braços</span><span class="pill">{{TOTAL_RUNS}} runs</span><span class="pill">{{MODEL}}</span><br><br>
+    skill-ab-benchmark · gerado em {{DATE}}
+  </div>
+
+</body>
+</html>

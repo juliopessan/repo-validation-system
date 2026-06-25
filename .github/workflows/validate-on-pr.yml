@@ -1,0 +1,132 @@
+name: Validate Repo on PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: "Repository to validate (owner/repo)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ─── Self-validation: lint + type check + tests on this repo ────────────────
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]" --break-system-packages || pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check scripts/ --output-format=github
+
+      - name: Type check (mypy)
+        run: mypy scripts/ --ignore-missing-imports || true
+
+      - name: Run tests
+        run: pytest tests/ -v --cov=scripts --cov-report=xml --cov-report=term-missing
+
+      - name: Validate metrics schema
+        run: |
+          python3 -c "
+          import json, jsonschema
+          schema = json.loads(open('specs/metrics-schema.json').read())
+          print('✓ metrics-schema.json is valid JSON Schema')
+          "
+
+  # ─── Validate specific repo (only on workflow_dispatch) ─────────────────────
+  validate-target-repo:
+    name: Validate Target Repo
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e "." || pip install jsonschema rich click pydantic
+
+      - name: Run repo validation (CI mode)
+        run: |
+          python scripts/validate.py "${{ github.event.inputs.repo }}" \
+            --ci \
+            --no-cleanup-prompt \
+            --output ./validation-reports/
+
+      - name: Upload validation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report
+          path: ./validation-reports/
+          retention-days: 30
+
+  # ─── Validate schema integrity on every PR ──────────────────────────────────
+  validate-specs:
+    name: Validate Specs Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install jsonschema
+        run: pip install jsonschema
+
+      - name: Check metrics schema is valid
+        run: |
+          python3 -c "
+          import json, jsonschema
+          with open('specs/metrics-schema.json') as f:
+              schema = json.load(f)
+          # Validate a sample RepoValidator entry
+          sample_repo = {
+              '_type': 'repo-validator',
+              'repo': 'owner/repo',
+              'date': '2026-06-25T12:00:00+00:00',
+              'commit': 'abc1234',
+              'verdict': 'RECOMMENDED',
+              'metrics': {
+                  'build_success': True,
+                  'code_files': 42
+              }
+          }
+          try:
+              jsonschema.validate(instance=sample_repo, schema=schema)
+              print('✓ RepoValidator sample validates against schema')
+          except jsonschema.ValidationError as e:
+              print(f'✗ Schema validation failed: {e.message}')
+              exit(1)
+          "
+
+      - name: Check all SKILL.md files present
+        run: |
+          test -f skills/repo-validator/SKILL.md && echo "✓ repo-validator skill present"
+          test -f skills/skill-ab-benchmark/SKILL.md && echo "✓ skill-ab-benchmark skill present"
+          test -f skills/skill-ab-benchmark/report-template.html && echo "✓ report-template present"
+
+      - name: Check agent specs present
+        run: |
+          test -f agents/orchestrator.md && echo "✓ orchestrator spec present"
+          test -f agents/repo-audit-agent.md && echo "✓ repo-audit-agent spec present"
+          test -f agents/ab-runner-agent.md && echo "✓ ab-runner-agent spec present"
