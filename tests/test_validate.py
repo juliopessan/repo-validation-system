@@ -231,3 +231,109 @@ class TestLoadEvaluations:
         db.write_text("{invalid json}")
         result = load_evaluations(db)
         assert result == []
+
+
+# ─── report_html ──────────────────────────────────────────────────────────────
+
+class TestReportHtml:
+    def test_render_recommended(self, tmp_path):
+        from scripts.report_html import save_report
+        p = save_report(
+            output_path=tmp_path / "report.html",
+            repo="owner/repo",
+            commit="abc1234",
+            verdict="RECOMMENDED",
+            metrics={
+                "tests_pass": 95, "tests_total": 100, "tests_pass_rate": 95.0,
+                "coverage": 80.0, "build_success": True,
+                "lint_errors": 0, "vulns": 0, "vulns_critical": 0,
+                "code_files": 10,
+            },
+            stack={"language": "Python", "package_manager": "pip",
+                   "test_framework": "pytest", "has_docker": True, "has_ci": True},
+            strengths=["CI configurado"],
+            weaknesses=[],
+        )
+        html = p.read_text()
+        assert "owner/repo" in html
+        assert "RECOMMENDED" in html
+        assert "95" in html
+        assert "ti-shield-check" in html
+        assert "<!DOCTYPE html>" in html
+
+    def test_render_conditional(self, tmp_path):
+        from scripts.report_html import save_report
+        p = save_report(
+            output_path=tmp_path / "report.html",
+            repo="owner/repo2",
+            commit="def5678",
+            verdict="CONDITIONAL",
+            metrics={
+                "tests_pass": 72, "tests_total": 100, "tests_pass_rate": 72.0,
+                "coverage": 45.0, "build_success": True,
+                "lint_errors": 3, "vulns": 2, "vulns_critical": 0,
+                "code_files": 20,
+            },
+            stack={"language": "TypeScript", "package_manager": "pnpm",
+                   "test_framework": "vitest", "has_docker": False, "has_ci": True},
+            strengths=[],
+            weaknesses=["Coverage baixo"],
+        )
+        html = p.read_text()
+        assert "CONDITIONAL" in html
+        assert "72" in html
+        assert "Coverage baixo" in html
+
+    def test_render_with_history(self, tmp_path):
+        from scripts.report_html import save_report
+        p = save_report(
+            output_path=tmp_path / "report.html",
+            repo="owner/repo",
+            commit="abc",
+            verdict="RECOMMENDED",
+            metrics={"build_success": True, "code_files": 5, "tests_pass_rate": 91.0},
+            stack={},
+            strengths=[],
+            weaknesses=[],
+            history=[
+                {"repo": "owner/repo", "date": "2026-01-01", "verdict": "CONDITIONAL",
+                 "metrics": {"tests_pass_rate": 75, "coverage": 50}},
+            ],
+        )
+        html = p.read_text()
+        assert "Histórico" in html
+        assert "CONDITIONAL" in html
+
+    def test_html_has_chart_js(self, tmp_path):
+        from scripts.report_html import save_report
+        p = save_report(
+            output_path=tmp_path / "report.html",
+            repo="test/repo",
+            commit="abc",
+            verdict="RECOMMENDED",
+            metrics={"build_success": True, "code_files": 1, "tests_pass_rate": 90.0},
+            stack={},
+            strengths=[],
+            weaknesses=[],
+        )
+        html = p.read_text()
+        assert "chart.umd.js" in html
+        assert "tabler-icons" in html
+        assert "metricsChart" in html
+
+    def test_html_dark_mode_variables(self, tmp_path):
+        from scripts.report_html import save_report
+        p = save_report(
+            output_path=tmp_path / "report.html",
+            repo="test/repo",
+            commit="abc",
+            verdict="RECOMMENDED",
+            metrics={"build_success": True, "code_files": 1, "tests_pass_rate": 90.0},
+            stack={},
+            strengths=[],
+            weaknesses=[],
+        )
+        html = p.read_text()
+        assert "prefers-color-scheme:dark" in html
+        assert "--text-primary" in html
+        assert "--surface-0" in html

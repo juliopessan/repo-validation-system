@@ -520,7 +520,7 @@ def main() -> None:
     if code_files > 0:
         strengths.append(f"Active codebase with {code_files} source files")
 
-    # Phase 6: Report
+    # Phase 6: Report (Markdown + HTML Claude Design System)
     start_time = datetime.now(timezone.utc)
     elapsed = (datetime.now(timezone.utc) - start_time).total_seconds() / 60
 
@@ -528,6 +528,26 @@ def main() -> None:
         owner, repo, commit, stack, metrics,
         strengths, weaknesses, results_dir, elapsed
     )
+
+    # Generate HTML report in Claude Design System
+    try:
+        from scripts.report_html import save_report as save_html_report
+        history = load_evaluations()[-5:]  # last 5 evals for history panel
+        html_path = results_dir / "report.html"
+        save_html_report(
+            output_path=html_path,
+            repo=f"{owner}/{repo}",
+            commit=commit,
+            verdict=compute_verdict(metrics),
+            metrics=metrics,
+            stack=stack,
+            strengths=strengths,
+            weaknesses=weaknesses,
+            history=history,
+        )
+        print(f"✓ HTML report: {html_path}")
+    except ImportError:
+        pass  # report_html not available in standalone mode
 
     # Persist evaluation
     verdict = compute_verdict(metrics)
